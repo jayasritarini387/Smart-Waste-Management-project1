@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Waste Management</title>
+
+<style>
+body{
+  font-family: Arial;
+  margin: 0;
+  background: url("https://freedesignfile.com/upload/2016/10/Green-Background-Green-Recycle-Symbol-Stock-Photo.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+header{
+  background:#2e7d32;
+  color:#fff;
+  padding:15px;
+  text-align:center;
+}
+.container{
+  max-width:480px;
+  margin:20px auto;
+  background:#ffffffdd; 
+  padding:20px;
+  border-radius:8px;
+}
+.dashboard-container{
+  max-width:900px;
+  min-height:650px;
+  margin:20px auto;
+  background:#ffffff; 
+  padding:25px;
+  border-radius:10px;
+}
+input,select,button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+}
+button{
+  background:#43a047;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+}
+button:hover{background:#2e7d32}
+.back{background:#777}
+.page{display:none}
+.status{
+  padding:4px 8px;
+  border-radius:10px;
+  color:#fff;
+  font-size:12px;
+}
+.pending{background:orange}
+.completed{background:green}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+td,th{
+  border:1px solid #ccc;
+  padding:6px;
+  text-align:center;
+}
+.forgot{
+  background:#ff9800;
+  margin-top:5px;
+}
+.addCollectorBtn{
+  background:#ff9800;
+  margin-bottom:10px;
+}
+.maps-link {
+  color: #2196F3 !important;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 11px;
+  display: block;
+}
+.maps-link:hover { text-decoration: underline; }
+.no-location { color: red; }
+.location-status { color: green; font-weight: bold; }
+</style>
+
+<!-- Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+</head>
+<body>
+
+<header>
+<h2>🌍 Smart Waste Management System</h2>
+</header>
+
+<!-- ROLE -->
+<div class="container page" id="rolePage">
+<h3>Select Role</h3>
+<button onclick="showPage('registerPage')">👤 User</button>
+<button onclick="showPage('collectorLoginPage')">🚛 Collector</button>
+<button onclick="showPage('adminLoginPage')">🧑‍💼 Admin</button>
+</div>
+
+<!-- USER REGISTER -->
+<div class="container page" id="registerPage">
+<h3>User Register</h3>
+<input id="regUser" placeholder="Username">
+<input id="regPass" type="password" placeholder="Password">
+<input id="regPhone" type="tel" placeholder="Phone Number">
+<input id="regHouse" placeholder="House Number">
+<input id="regStreet" placeholder="Street">
+<input id="regVillage" placeholder="Village Name">
+<input id="regMandal" placeholder="Mandal">
+<input id="regDistrict" placeholder="District">
+<button onclick="register()">Register</button>
+<p id="regMsg"></p>
+<button onclick="showPage('loginPage')">Login</button>
+<button class="back" onclick="showPage('rolePage')">⬅ Back</button>
+</div>
+
+<!-- USER LOGIN -->
+<div class="container page" id="loginPage">
+<h3>User Login</h3>
+<input id="loginUser" placeholder="Username">
+<input id="loginPass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<p id="loginMsg"></p>
+<button class="forgot" onclick="forgotPassword('user')">Forgot Password?</button>
+<button class="back" onclick="showPage('rolePage')">⬅ Back</button>
+</div>
+
+<!-- COLLECTOR LOGIN -->
+<div class="container page" id="collectorLoginPage">
+<h3>Collector Login</h3>
+<input id="collectorId" placeholder="Collector ID">
+<input id="collectorPass" type="password" placeholder="Password">
+<button onclick="collectorLogin()">Login</button>
+<p id="collectorMsg"></p>
+<button class="forgot" onclick="forgotPassword('collector')">Forgot Password?</button>
+<button class="back" onclick="showPage('rolePage')">⬅ Back</button>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="container page" id="adminLoginPage">
+<h3>Admin Login</h3>
+<input id="adminUser" placeholder="Admin Username">
+<input id="adminPass" type="password" placeholder="Admin Password">
+<button onclick="adminLogin()">Login</button>
+<p id="adminMsg"></p>
+<button class="back" onclick="showPage('rolePage')">⬅ Back</button>
+</div>
+
+<!-- USER DASHBOARD -->
+<div class="container dashboard-container page" id="userPage">
+<h3>Book Plastic Pickup</h3>
+<select id="plastic">
+<option value="">Plastic Type</option>
+<option>Bottles</option>
+<option>Bags</option>
+<option>Containers</option>
+<option>Mixed Plastic</option>
+</select>
+<input id="weight" type="number" placeholder="Weight (kg)">
+<button onclick="getLocation()" id="locBtn">📍 Capture Location</button>
+<p id="locText" class="no-location">⚠️ Click Capture Location FIRST!</p>
+<h4>💳 Payment</h4>
+<select id="payment">
+<option value="">Select Payment</option>
+<option>UPI</option>
+<option>Card</option>
+<option>Cash</option>
+</select>
+<button onclick="bookPickup()" id="bookBtn" disabled>Book Pickup</button>
+<p id="bookMsg"></p>
+<h4>⭐ Reward Points: <span id="points">0</span></h4>
+<h4>My Pickups</h4>
+<table>
+<tr><th>Plastic</th><th>Status</th></tr>
+<tbody id="userTable"></tbody>
+</table>
+<button onclick="logout()">Logout</button>
+<button class="back" onclick="showPage('rolePage')">⬅ Back</button>
+</div>
+
+<!-- COLLECTOR DASHBOARD -->
+<div class="container dashboard-container page" id="collectorPage">
+<h3>Collector Dashboard</h3>
+<table>
+<tr>
+<th>Username</th>
+<th>Phone</th>
+<th>House No</th>
+<th>Street</th>
+<th>Village</th>
+<th>Mandal</th>
+<th>District</th>
+<th>Plastic</th>
+<th>Weight (kg)</th>
+<th>Status</th>
+<th>Location</th>
+<th>Action</th>
+</tr>
+<tbody id="collectorTable"></tbody>
+</table>
+<button class="back" onclick="showPage('rolePage')">⬅ Back</button>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div class="container dashboard-container page" id="adminPage">
+<h3>Admin Analytics</h3>
+<button class="addCollectorBtn" onclick="adminRegisterCollector()">➕ Add Collector</button>
+<h4>User Pickups</h4>
+<table>
+<tr>
+<th>Username</th><th>Phone</th><th>House</th><th>Street</th><th>Village</th><th>Mandal</th><th>District</th><th>Plastic</th><th>Weight</th><th>Status</th>
+</tr>
+<tbody id="adminUserTable"></tbody>
+</table>
+<h4>Collectors</h4>
+<table>
+<tr>
+<th>Collector ID</th><th>Phone</th><th>Village</th><th>Mandal</th><th>District</th><th>Total Weight Collected</th>
+</tr>
+<tbody id="adminCollectorTable"></tbody>
+</table>
+<button class="back" onclick="showPage('rolePage')">⬅ Back</button>
+</div>
+
+<script>
+// PAGE CONTROL
+function showPage(id){ document.querySelectorAll(".page").forEach(p=>p.style.display="none"); document.getElementById(id).style.display="block"; }
+showPage("rolePage");
+
+let currentUser = null, currentCollector = null, gps = {};
+const ADMIN_USER="admin", ADMIN_PASS="admin123";
+
+// FIREBASE INIT
+const firebaseConfig = {
+  apiKey: "AIzaSyDkLzlDpb2qqvJwP8QoJQfVXFAjF7qFGBA",
+  authDomain: "smart-waste-management-31f6f.firebaseapp.com",
+  databaseURL: "https://smart-waste-management-31f6f-default-rtdb.firebaseio.com",
+  projectId: "smart-waste-management-31f6f",
+  storageBucket: "smart-waste-management-31f6f.firebasestorage.app",
+  messagingSenderId: "784034656870",
+  appId: "1:784034656870:web:721a9ea436c5dd6dd0f3a7"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// REAL GPS + FALLBACK
+function getLocation(){
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        gps = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        };
+        locText.innerHTML = `📍 Real Location: ${gps.latitude.toFixed(4)}, ${gps.longitude.toFixed(4)}`;
+        locText.className = "location-status";
+        document.getElementById('bookBtn').disabled = false;
+        document.getElementById('locBtn').textContent = "✅ Real GPS OK";
+        document.getElementById('locBtn').style.background = "#4CAF50";
+      },
+      (error) => {
+        // FALLBACK to demo GPS
+        gps = { 
+          latitude: 17.3850 + (Math.random()-0.5)*0.02, 
+          longitude: 78.4867 + (Math.random()-0.5)*0.02 
+        };
+        locText.innerHTML = `⚠️ Permission denied - Demo GPS: ${gps.latitude.toFixed(4)}, ${gps.longitude.toFixed(4)}`;
+        locText.className = "no-location";
+        document.getElementById('bookBtn').disabled = false;
+        document.getElementById('locBtn').textContent = "✅ Demo GPS OK";
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  } else {
+    // No GPS support - demo
+    gps = { latitude: 17.3850, longitude: 78.4867 };
+    locText.innerHTML = `❌ No GPS support - Demo used`;
+    document.getElementById('bookBtn').disabled = false;
+  }
+}
+
+function bookPickup(){
+  if(!plastic.value || !weight.value || !payment.value || !gps.latitude){
+    bookMsg.textContent="❌ Capture location first!";
+    return;
+  }
+  db.ref("bookings").push({
+    user: currentUser,
+    plastic: plastic.value,
+    weight: Number(weight.value),
+    status: "pending",
+    location: gps,
+    timestamp: Date.now()
+  }).then(()=>{
+    bookMsg.textContent="✅ Pickup Booked - Location Saved!";
+    plastic.value = weight.value = payment.value = "";
+  });
+}
+
+function register(){
+  const u = regUser.value.trim(), p = regPass.value.trim();
+  if(!u || !p){ regMsg.textContent="❌ Fill all details"; return; }
+  db.ref("users/"+u).get().then(s=>{
+    if(s.exists()){ regMsg.textContent="❌ User exists"; return; }
+    db.ref("users/"+u).set({
+      password: p,
+      phone: regPhone.value,
+      house: regHouse.value,
+      street: regStreet.value,
+      village: regVillage.value,
+      mandal: regMandal.value,
+      district: regDistrict.value,
+      points: 0
+    }).then(()=>{ regMsg.textContent="✅ Registered successfully"; });
+  });
+}
+
+function login(){
+  const u = loginUser.value.trim(), p = loginPass.value.trim();
+  db.ref("users/"+u).get().then(s=>{
+    if(s.exists() && s.val().password===p){ currentUser=u; showPage("userPage"); listenUserBookings(); }
+    else loginMsg.textContent="❌ Invalid login";
+  });
+}
+
+function collectorLogin(){
+  const id = collectorId.value.trim(), p = collectorPass.value.trim();
+  db.ref("collectors/"+id).get().then(s=>{
+    if(s.exists() && s.val().password===p){ currentCollector=id; showPage("collectorPage"); listenCollectorBookings(); }
+    else collectorMsg.textContent="❌ Invalid credentials";
+  });
+}
+
+function adminLogin(){ 
+  if(adminUser.value===ADMIN_USER && adminPass.value===ADMIN_PASS){ openAdmin(); } 
+  else adminMsg.textContent="❌ Invalid admin credentials"; 
+}
+
+function listenUserBookings(){
+  db.ref("bookings").on("value", snap=>{
+    let rows=""; snap.forEach(s=>{
+      const b=s.val();
+      if(b.user===currentUser){ rows+=`<tr><td>${b.plastic}</td><td><span class="status ${b.status}">${b.status}</span></td></tr>`; }
+    });
+    userTable.innerHTML=rows;
+    db.ref("users/"+currentUser+"/points").get().then(p=>{ points.textContent=p.val()||0; });
+  });
+}
+
+function listenCollectorBookings(){
+  db.ref("bookings").on("value", snap=>{
+    db.ref("users").get().then(usersSnap=>{
+      let rows=""; const users=usersSnap.val();
+      snap.forEach(s=>{
+        const b=s.val(), u=users ? users[b.user] : null;
+        const lat = b.location ? b.location.latitude.toFixed(4) : '';
+        const lng = b.location ? b.location.longitude.toFixed(4) : '';
+        const mapsUrl = b.location ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '';
+        rows+=`<tr>
+          <td>${b.user}</td><td>${u ? u.phone : 'N/A'}</td><td>${u ? u.house : 'N/A'}</td><td>${u ? u.street : 'N/A'}</td><td>${u ? u.village : 'N/A'}</td>
+          <td>${u ? u.mandal : 'N/A'}</td><td>${u ? u.district : 'N/A'}</td><td>${b.plastic}</td><td>${b.weight}</td>
+          <td><span class="status ${b.status}">${b.status}</span></td>
+          <td>${b.location ? `<a href="${mapsUrl}" target="_blank" class="maps-link">🗺️ View on Maps</a>` : '<span class="no-location">No GPS</span>'}</td>
+          <td>${b.status==="pending"?`<button onclick="markCollected('${s.key}')">Collected</button>`:"✔"}</td>
+        </tr>`;
+      });
+      collectorTable.innerHTML=rows;
+    });
+  });
+}
+
+function markCollected(key){
+  db.ref("bookings/"+key).get().then(s=>{
+    const b=s.val(); b.status="completed"; b.collector=currentCollector;
+    db.ref("bookings/"+key).set(b);
+    db.ref("users/"+b.user+"/points").get().then(p=>{ 
+      db.ref("users/"+b.user+"/points").set((p.val()||0)+10); 
+    });
+  });
+}
+
+function openAdmin(){
+  showPage("adminPage");
+  db.ref("bookings").on("value", bookSnap=>{
+    db.ref("users").get().then(userSnap=>{
+      db.ref("collectors").get().then(collSnap=>{
+        let userRows="", collectorRows="";
+        const allUsers=userSnap.val()||{}, allBookings=bookSnap.val()||{}, allCollectors=collSnap.val()||{};
+        for(let k in allBookings){
+          const b=allBookings[k], u=allUsers[b.user];
+          userRows+=`<tr><td>${b.user}</td><td>${u ? u.phone : 'N/A'}</td><td>${u ? u.house : 'N/A'}</td><td>${u ? u.street : 'N/A'}</td><td>${u ? u.village : 'N/A'}</td><td>${u ? u.mandal : 'N/A'}</td><td>${u ? u.district : 'N/A'}</td><td>${b.plastic}</td><td>${b.weight}</td><td>${b.status}</td></tr>`;
+        }
+        adminUserTable.innerHTML=userRows;
+
+        for(let id in allCollectors){
+          let totalWeight=0;
+          for(let k in allBookings){ const b=allBookings[k]; if(b.collector===id && b.status==="completed") totalWeight+=b.weight; }
+          const c=allCollectors[id];
+          collectorRows+=`<tr><td>${id}</td><td>${c.phone}</td><td>${c.village}</td><td>${c.mandal}</td><td>${c.district}</td><td>${totalWeight}</td></tr>`;
+        }
+        adminCollectorTable.innerHTML=collectorRows;
+      });
+    });
+  });
+}
+
+function adminRegisterCollector(){
+  const id = prompt("Enter Collector ID:"), pass = prompt("Enter Password:"), phone = prompt("Phone:"), village = prompt("Village:"), mandal = prompt("Mandal:"), district = prompt("District:");
+  if(id && pass){
+    db.ref("collectors/"+id).set({password:pass,phone,village,mandal,district}).then(()=>{
+      alert("✅ Collector Registered!");
+      openAdmin();
+    });
+  }
+}
+
+function forgotPassword(role){
+  const id = prompt("Enter your username/ID:");
+  if(!id) return;
+  db.ref(role==="user"?"users/"+id:"collectors/"+id).get().then(s=>{
+    if(s.exists()) alert(`Your password is: ${s.val().password}`);
+    else alert("❌ User/Collector not found");
+  });
+}
+
+function logout(){ currentUser=null; currentCollector=null; showPage("loginPage"); gps={}; }
+</script>
+
+</body>
+</html>
+
